@@ -67,7 +67,7 @@ module SistemaMatrix
         <body style="font-family: Arial; padding: 15px;">
           <h3>Sistema Modular de Cajones</h3>
           <p style="font-size: 12px; color: #666;">
-            Crea dos hileras de cajones organizados en columnas
+            Crea cajones apilados verticalmente en columnas
           </p>
 
           <label><strong>Número de Cajones</strong></label><br>

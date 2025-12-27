@@ -113,9 +113,10 @@ module SistemaMatrix
       end
     end
 
-    # Crear sistema modular de cajones con columnas e hileras
+    # Crear sistema modular de cajones con columnas
+    # Los cajones se apilan verticalmente en cada columna
     # num_cajones: número total de cajones
-    # num_columnas: número de columnas por hilera
+    # num_columnas: número de columnas
     # ancho_cajon: ancho de cada cajón
     # alto_cajon: altura de cada cajón
     # fondo_cajon: profundidad de cada cajón
@@ -127,63 +128,46 @@ module SistemaMatrix
       system_group = ents.add_group
       system_entities = system_group.entities
       
-      # Calcular número de hileras (siempre 2 según el requerimiento)
-      num_hileras = 2
-      cajones_por_hilera = (num_cajones.to_f / num_hileras).ceil
-
-      # Calcular cajones por columna (apilados verticalmente en cada columna)
-      cajones_por_columna = (cajones_por_hilera.to_f / num_columnas).ceil
+      # Calcular cajones por columna (apilados verticalmente)
+      cajones_por_columna = (num_cajones.to_f / num_columnas).ceil
 
       model.start_operation("Crear Sistema de Cajones", true)
       
       cajon_actual = 0
-      (0...num_hileras).each do |hilera|
-        # Calcular cuántos cajones quedan para esta hilera
-        cajones_restantes_hilera = num_cajones - cajon_actual
-        cajones_en_hilera = [cajones_por_hilera, cajones_restantes_hilera].min
+      
+      # Crear cajones distribuidos en columnas
+      (0...num_columnas).each do |columna|
+        break if cajon_actual >= num_cajones
         
-        (0...num_columnas).each do |columna|
+        # Calcular cuántos cajones en esta columna
+        cajones_restantes = num_cajones - cajon_actual
+        cajones_en_columna = [cajones_por_columna, cajones_restantes].min
+        
+        # Posición X (columna)
+        pos_x = columna * (ancho_cajon + separacion)
+        
+        # Posición Y (todos los cajones en la misma posición Y)
+        pos_y = 0
+        
+        # Crear cajones en esta columna (apilados verticalmente)
+        (0...cajones_en_columna).each do |cajon_idx|
           break if cajon_actual >= num_cajones
           
-          # Calcular cuántos cajones en esta columna de esta hilera
-          cajones_restantes_columna = cajones_en_hilera - (columna * (cajones_en_hilera.to_f / num_columnas).ceil)
-          cajones_en_columna = (cajones_en_hilera.to_f / num_columnas).ceil
+          # Posición Z (altura - apilados desde el suelo)
+          pos_z = cajon_idx * (alto_cajon + separacion)
           
-          if columna == num_columnas - 1
-            # Última columna toma los cajones restantes
-            cajones_en_columna = cajones_restantes_columna.ceil
-          end
+          # Crear un subgrupo para este cajón dentro del sistema
+          cajon_group = system_entities.add_group
+          cajon_entities = cajon_group.entities
           
-          # Asegurar que no excedamos el número total de cajones
-          cajones_en_columna = [cajones_en_columna, num_cajones - cajon_actual].min
-          next if cajones_en_columna <= 0
-
-          # Posición X (columna)
-          pos_x = columna * (ancho_cajon + separacion)
+          # Crear el cajón directamente en el grupo del sistema
+          create_drawer(ancho_cajon, alto_cajon, fondo_cajon, 18.0, 4.0, cajon_entities)
           
-          # Posición Y (hilera - primera hilera atrás, segunda hilera adelante)
-          pos_y = hilera * (fondo_cajon + separacion)
+          # Mover el cajón a la posición correcta
+          cajon_group.move!(Geom::Vector3d.new(pos_x, pos_y, pos_z))
+          cajon_group.name = "Cajón #{cajon_actual + 1}"
           
-          # Crear cajones en esta columna (apilados verticalmente)
-          (0...cajones_en_columna).each do |cajon_idx|
-            break if cajon_actual >= num_cajones
-            
-            # Posición Z (altura - apilados desde el suelo)
-            pos_z = cajon_idx * (alto_cajon + separacion)
-            
-            # Crear un subgrupo para este cajón dentro del sistema
-            cajon_group = system_entities.add_group
-            cajon_entities = cajon_group.entities
-            
-            # Crear el cajón directamente en el grupo del sistema
-            create_drawer(ancho_cajon, alto_cajon, fondo_cajon, 18.0, 4.0, cajon_entities)
-            
-            # Mover el cajón a la posición correcta
-            cajon_group.move!(Geom::Vector3d.new(pos_x, pos_y, pos_z))
-            cajon_group.name = "Cajón #{cajon_actual + 1}"
-            
-            cajon_actual += 1
-          end
+          cajon_actual += 1
         end
       end
 
